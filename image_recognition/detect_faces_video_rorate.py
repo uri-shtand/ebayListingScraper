@@ -12,7 +12,7 @@ prototxt = "./model/deploy.prototxt"
 model = "./model/weights.caffemodel"
 maxConfidence = 0.5
 
-def markValidDetections(detections, frame):
+def markValidDetections(detections, frame,degrees):
     (h, w) = frame.shape[:2]
     # loop over the detections
     for i in range(0, detections.shape[2]):
@@ -29,8 +29,19 @@ def markValidDetections(detections, frame):
         # object
         box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
         (startX, startY, endX, endY) = box.astype("int")
-        markDetection(confidence, endX, endY, frame, startX, startY)
+        #markDetection(confidence, endX, endY, frame, startX, startY)
+        rotateFace(endX,endY,frame,startX,startY,degrees)
 
+def rotateFace(endX, endY, frame, startX, startY,degrees):
+    head = frame[startY:endY, startX:endX]
+    w = endX - startX
+    h = endY - startY
+    center = (w // 2, h // 2)
+    M = cv2.getRotationMatrix2D(center, -degrees, 1.0)
+    rotatedHead = cv2.warpAffine(head, M, (w, h))
+    (nh, nw) = rotatedHead.shape[:2]
+    #print("startX: {} startY:{}, nh: {}, nw: {}, h: {}, w: {}".format(startX,startY,nh,nw,h,w))
+    frame[startY:startY+nh, startX:startX+nw] = rotatedHead
 
 def markDetection(confidence, endX, endY, frame, startX, startY):
     # draw the bounding box of the face along with the associated
@@ -65,14 +76,16 @@ videoStream = VideoStream(src=0).start()
 time.sleep(2.0)
 
 # loop over the frames from the video stream
+degrees = 0
 while True:
+    degrees = degrees + 10 % 360
     # grab the frame from the threaded video stream and resize it
     # to have a maximum width of 400 pixels
     frame = videoStream.read()
     frame = imutils.resize(frame, width=maxWidth)
 
     detections = findFaces(frame)
-    markValidDetections(detections, frame)
+    markValidDetections(detections, frame,degrees)
     # show the output frame
     cv2.imshow("Frame", frame)
     key = cv2.waitKey(1) & 0xFF
