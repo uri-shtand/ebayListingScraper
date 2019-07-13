@@ -7,7 +7,7 @@ import cv2
 import imutils
 from imutils.video import VideoStream
 
-maxWidth = 600
+maxWidth = 900
 prototxt = "./model/deploy.prototxt"
 model = "./model/weights.caffemodel"
 maxConfidence = 0.5
@@ -29,14 +29,21 @@ def markValidDetections(detections, frame,degrees):
         # object
         box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
         (startX, startY, endX, endY) = box.astype("int")
-        #markDetection(confidence, endX, endY, frame, startX, startY)
-        applyFilterOnFace(endX,endY,frame,startX,startY,degrees)
+        applyGrayscaleFilterOnFace(endX, endY, frame, startX, startY, degrees)
 
-def applyFilterOnFace(endX, endY, frame, startX, startY,degrees):
+def applyBlurFilterOnFace(endX, endY, frame, startX, startY, degrees):
     head = frame[startY:endY, startX:endX]
     w = endX - startX
     h = endY - startY
     filteredHead = cv2.GaussianBlur(head, (degrees, degrees), 0)
+    frame[startY:startY+h, startX:startX+w] = filteredHead
+
+def applyGrayscaleFilterOnFace(endX, endY, frame, startX, startY, degrees):
+    head = frame[startY:endY, startX:endX]
+    w = endX - startX
+    h = endY - startY
+    filteredHead = cv2.cvtColor(head, cv2.COLOR_BGR2GRAY)
+    filteredHead = cv2.cvtColor(filteredHead,cv2.COLOR_GRAY2RGB)
     frame[startY:startY+h, startX:startX+w] = filteredHead
 
 def findFaces(frame):
