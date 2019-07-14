@@ -43,7 +43,7 @@ def applyFilterOnHead(endX, endY, frame, startX, startY, degrees, filter):
 
 
 def applyBlurFilterOnFace(head, degrees):
-    return cv2.GaussianBlur(head, (degrees, degrees), 0)
+    return cv2.GaussianBlur(head, (degrees * 2 + 1, degrees * 2 + 1), 0)
 
 
 def applyGrayscaleFilterOnFace(head, degrees):
@@ -82,6 +82,11 @@ def findContour(head,degrees):
         cv2.drawContours(head, [c], -1, (240, 0, 159), 1)
     return head
 
+def erode(head,degrees):
+    #filteredHead = cv2.Canny(head, 30, 150)
+    filteredHead = cv2.erode(head, None, iterations=degrees)
+    return filteredHead
+
 
 def switchFilter(argument):
     switcher = {
@@ -93,8 +98,9 @@ def switchFilter(argument):
         5: applyThresholdFilterAdaptive,
         6: applyBlurFilterOnFace,
         7: findContour,
+        8: erode,
     }
-    return switcher.get(argument % 8, lambda: "Invalid filter")
+    return switcher.get(argument % 9, lambda: "Invalid filter")
 
 
 def findFaces(frame):
@@ -120,12 +126,12 @@ videoStream = VideoStream(src=0).start()
 time.sleep(2.0)
 
 # loop over the frames from the video stream
-degrees = 5
-direction = 2
+degrees = 0
+direction = 1
 filterType = 0
 while True:
     degrees = degrees + direction
-    if degrees > 21 or degrees == 5:
+    if degrees > 9 or degrees == 0:
         direction = 0 - direction
     # grab the frame from the threaded video stream and resize it
     # to have a maximum width of 400 pixels
