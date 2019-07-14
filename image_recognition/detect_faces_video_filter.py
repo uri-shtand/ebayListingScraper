@@ -1,10 +1,10 @@
 # This is based on code by Adrian from PyImageSearch
 # import the necessary packages
-import argparse
 import time
-import numpy as np
+
 import cv2
 import imutils
+import numpy as np
 from imutils.video import VideoStream
 
 maxWidth = 900
@@ -12,7 +12,8 @@ prototxt = "./model/deploy.prototxt"
 model = "./model/weights.caffemodel"
 maxConfidence = 0.5
 
-def markValidDetections(detections, frame,degrees):
+
+def markValidDetections(detections, frame, degrees, filterType):
     (h, w) = frame.shape[:2]
     # loop over the detections
     for i in range(0, detections.shape[2]):
@@ -29,22 +30,40 @@ def markValidDetections(detections, frame,degrees):
         # object
         box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
         (startX, startY, endX, endY) = box.astype("int")
-        applyGrayscaleFilterOnFace(endX, endY, frame, startX, startY, degrees)
+        filter = switchFilter(filterType)
+        applyFilterOnHead(endX, endY, frame, startX, startY, degrees, filter)
 
-def applyBlurFilterOnFace(endX, endY, frame, startX, startY, degrees):
+
+def applyFilterOnHead(endX, endY, frame, startX, startY, degrees, filter):
     head = frame[startY:endY, startX:endX]
     w = endX - startX
     h = endY - startY
-    filteredHead = cv2.GaussianBlur(head, (degrees, degrees), 0)
-    frame[startY:startY+h, startX:startX+w] = filteredHead
+    filteredHead = filter(head, degrees)
+    frame[startY:startY + h, startX:startX + w] = filteredHead
 
-def applyGrayscaleFilterOnFace(endX, endY, frame, startX, startY, degrees):
-    head = frame[startY:endY, startX:endX]
-    w = endX - startX
-    h = endY - startY
+
+def applyBlurFilterOnFace(head, degrees):
+    return cv2.GaussianBlur(head, (degrees, degrees), 0)
+
+
+def applyGrayscaleFilterOnFace(head, degrees):
     filteredHead = cv2.cvtColor(head, cv2.COLOR_BGR2GRAY)
-    filteredHead = cv2.cvtColor(filteredHead,cv2.COLOR_GRAY2RGB)
-    frame[startY:startY+h, startX:startX+w] = filteredHead
+    return cv2.cvtColor(filteredHead, cv2.COLOR_GRAY2RGB)
+
+
+def applyEdgeFilter(head, degrees):
+    filteredHead = cv2.Canny(head, 30, 150)
+    return cv2.cvtColor(filteredHead, cv2.COLOR_GRAY2RGB)
+
+
+def switchFilter(argument):
+    switcher = {
+        0: applyEdgeFilter,
+        1: applyGrayscaleFilterOnFace,
+        2: applyBlurFilterOnFace
+    }
+    return switcher.get(argument, lambda: "Invalid filter")
+
 
 def findFaces(frame):
     # grab the frame dimensions and convert it to a blob
@@ -55,6 +74,7 @@ def findFaces(frame):
     net.setInput(blob)
     detections = net.forward()
     return detections
+
 
 # MAIN starts here
 # load our serialized model from disk
@@ -81,7 +101,7 @@ while True:
     frame = imutils.resize(frame, width=maxWidth)
 
     detections = findFaces(frame)
-    markValidDetections(detections, frame,degrees)
+    markValidDetections(detections, frame, degrees, filterType)
     # show the output frame
     cv2.imshow("Frame", frame)
     key = cv2.waitKey(1) & 0xFF
@@ -90,7 +110,7 @@ while True:
     if key == ord("q"):
         break
     if key == ord('f'):
-        filterType = filterType + 1 % 2
+        filterType = (filterType + 1) % 3
 
 # do a bit of cleanup
 cv2.destroyAllWindows()
