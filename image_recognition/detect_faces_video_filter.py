@@ -88,10 +88,23 @@ def erode(head,degrees):
     return filteredHead
 
 
+def dilate(head,degrees):
+    filteredHead = cv2.Canny(head, 30, 150)
+    filteredHead = cv2.dilate(filteredHead, None, iterations=degrees)
+    return cv2.cvtColor(filteredHead, cv2.COLOR_GRAY2RGB)
+
+
+def mask(head,degress):
+    filteredHead = cv2.Canny(head, 25, 30)
+    filteredHead = cv2.dilate(filteredHead, None, iterations=1)
+    filteredHead = cv2.bitwise_and(head, head, mask=filteredHead)
+    return filteredHead
+
+
 def switchFilter(argument):
     switcher = {
         0: applyEdgeFilter,
-        1: applyGrayscaleFilterOnFace,
+        1: mask,
         2: applyThresholdFilterBinary,
         3: applyThresholdFilterToZero,
         4: applyThresholdFilterTrunc,
@@ -99,8 +112,10 @@ def switchFilter(argument):
         6: applyBlurFilterOnFace,
         7: findContour,
         8: erode,
+        9: dilate,
+        10: applyGrayscaleFilterOnFace,
     }
-    return switcher.get(argument % 9, lambda: "Invalid filter")
+    return switcher.get(argument % 11, lambda: "Invalid filter")
 
 
 def findFaces(frame):
