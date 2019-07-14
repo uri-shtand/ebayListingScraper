@@ -1,6 +1,7 @@
 # This is loosely based on code by Adrian from PyImageSearch
 # import the necessary packages
 import time
+
 import cv2
 import imutils
 import numpy as np
@@ -67,6 +68,12 @@ def applyThresholdFilterBinary(head, degrees):
     return cv2.threshold(head, 100, 200, cv2.THRESH_BINARY_INV)[1]
 
 
+def applyThresholdFilterAdaptive(head, degrees):
+    filteredHead = cv2.cvtColor(head, cv2.COLOR_BGR2GRAY)
+    filteredHead = cv2.adaptiveThreshold(filteredHead, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+    return cv2.cvtColor(filteredHead, cv2.COLOR_GRAY2RGB)
+
+
 def switchFilter(argument):
     switcher = {
         0: applyEdgeFilter,
@@ -74,9 +81,10 @@ def switchFilter(argument):
         2: applyThresholdFilterBinary,
         3: applyThresholdFilterToZero,
         4: applyThresholdFilterTrunc,
-        5: applyBlurFilterOnFace,
+        5: applyThresholdFilterAdaptive,
+        6: applyBlurFilterOnFace,
     }
-    return switcher.get(argument % 6, lambda: "Invalid filter")
+    return switcher.get(argument % 7, lambda: "Invalid filter")
 
 
 def findFaces(frame):
