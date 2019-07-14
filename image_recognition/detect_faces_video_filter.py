@@ -74,6 +74,15 @@ def applyThresholdFilterAdaptive(head, degrees):
     return cv2.cvtColor(filteredHead, cv2.COLOR_GRAY2RGB)
 
 
+def findContour(head,degrees):
+    filteredHead = cv2.Canny(head, 30, 150)
+    cnts = cv2.findContours(filteredHead, cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+    cnts = imutils.grab_contours(cnts)
+    for c in cnts:
+        cv2.drawContours(head, [c], -1, (240, 0, 159), 1)
+    return head
+
+
 def switchFilter(argument):
     switcher = {
         0: applyEdgeFilter,
@@ -83,8 +92,9 @@ def switchFilter(argument):
         4: applyThresholdFilterTrunc,
         5: applyThresholdFilterAdaptive,
         6: applyBlurFilterOnFace,
+        7: findContour,
     }
-    return switcher.get(argument % 7, lambda: "Invalid filter")
+    return switcher.get(argument % 8, lambda: "Invalid filter")
 
 
 def findFaces(frame):
