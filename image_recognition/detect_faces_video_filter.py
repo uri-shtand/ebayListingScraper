@@ -1,13 +1,12 @@
-# This is based on code by Adrian from PyImageSearch
+# This is loosely based on code by Adrian from PyImageSearch
 # import the necessary packages
 import time
-
 import cv2
 import imutils
 import numpy as np
 from imutils.video import VideoStream
 
-maxWidth = 900
+displayWidth = 900
 prototxt = "./model/deploy.prototxt"
 model = "./model/weights.caffemodel"
 maxConfidence = 0.5
@@ -56,13 +55,28 @@ def applyEdgeFilter(head, degrees):
     return cv2.cvtColor(filteredHead, cv2.COLOR_GRAY2RGB)
 
 
+def applyThresholdFilterToZero(head, degrees):
+    return cv2.threshold(head, 100, 200, cv2.THRESH_TOZERO_INV)[1]
+
+
+def applyThresholdFilterTrunc(head, degrees):
+    return cv2.threshold(head, 100, 200, cv2.THRESH_TRUNC)[1]
+
+
+def applyThresholdFilterBinary(head, degrees):
+    return cv2.threshold(head, 100, 200, cv2.THRESH_BINARY_INV)[1]
+
+
 def switchFilter(argument):
     switcher = {
         0: applyEdgeFilter,
         1: applyGrayscaleFilterOnFace,
-        2: applyBlurFilterOnFace
+        2: applyThresholdFilterBinary,
+        3: applyThresholdFilterToZero,
+        4: applyThresholdFilterTrunc,
+        5: applyBlurFilterOnFace,
     }
-    return switcher.get(argument, lambda: "Invalid filter")
+    return switcher.get(argument % 6, lambda: "Invalid filter")
 
 
 def findFaces(frame):
@@ -98,7 +112,7 @@ while True:
     # grab the frame from the threaded video stream and resize it
     # to have a maximum width of 400 pixels
     frame = videoStream.read()
-    frame = imutils.resize(frame, width=maxWidth)
+    frame = imutils.resize(frame, width=displayWidth)
 
     detections = findFaces(frame)
     markValidDetections(detections, frame, degrees, filterType)
@@ -110,7 +124,7 @@ while True:
     if key == ord("q"):
         break
     if key == ord('f'):
-        filterType = (filterType + 1) % 3
+        filterType = filterType + 1
 
 # do a bit of cleanup
 cv2.destroyAllWindows()
