@@ -70,6 +70,7 @@ time.sleep(2.0)
 # loop over the frames from the video stream
 degrees = 5
 direction = 2
+filterType = 0
 while True:
     degrees = degrees + direction
     if degrees > 21 or degrees == 5:
@@ -88,6 +89,8 @@ while True:
     # if the `q` key was pressed, break from the loop
     if key == ord("q"):
         break
+    if key == ord('f'):
+        filterType = filterType + 1 % 2
 
 # do a bit of cleanup
 cv2.destroyAllWindows()
