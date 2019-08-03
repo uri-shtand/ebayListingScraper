@@ -4,13 +4,17 @@ import time
 
 import cv2
 import imutils
+import dlib
 import numpy as np
 from imutils.video import VideoStream
+from imutils import face_utils
 
 displayWidth = 900
 prototxt = "./model/deploy.prototxt"
 model = "./model/weights.caffemodel"
 maxConfidence = 0.5
+predictorPath = "./model/shape_predictor_68_face_landmarks.dat"
+predictor = dlib.shape_predictor(predictorPath)
 
 
 def markValidDetections(detections, frame, degrees, filterType):
@@ -74,6 +78,16 @@ def applyThresholdFilterAdaptive(head, degrees):
     return cv2.cvtColor(filteredHead, cv2.COLOR_GRAY2RGB)
 
 
+def applyFacialPattern(head, degrees):
+    (h, w) = head.shape[:2]
+    rect = dlib.rectangle(0,0,w,h)
+    shape = predictor(head,rect)
+    shape = face_utils.shape_to_np(shape)
+    for (x, y) in shape:
+        cv2.circle(head, (x, y), 1, (0, 0, 255), -1)
+    return head
+
+
 def findContour(head,degrees):
     filteredHead = cv2.Canny(head, 30, 150)
     cnts = cv2.findContours(filteredHead, cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
@@ -104,7 +118,7 @@ def mask(head,degress):
 def switchFilter(argument):
     switcher = {
         0: applyEdgeFilter,
-        1: mask,
+        1: applyFacialPattern,
         2: applyThresholdFilterBinary,
         3: applyThresholdFilterToZero,
         4: applyThresholdFilterTrunc,
@@ -114,6 +128,7 @@ def switchFilter(argument):
         8: erode,
         9: dilate,
         10: applyGrayscaleFilterOnFace,
+        11: mask,
     }
     return switcher.get(argument % 11, lambda: "Invalid filter")
 
